@@ -101,6 +101,8 @@ int main() {
           double steer_value;
           double throttle_value;
 
+          steer_value = -1.0*M_PI/180.0; // curve to the left
+          throttle_value = 0.05;
           json msgJson;
           msgJson["steering_angle"] = steer_value;
           msgJson["throttle"] = throttle_value;
@@ -111,6 +113,8 @@ int main() {
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Green line
+          mpc_x_vals = {0, 5, 10, 15, 20, 25};
+          mpc_y_vals = {0, 0, 0, 0, 0, 0};
 
           msgJson["mpc_x"] = mpc_x_vals;
           msgJson["mpc_y"] = mpc_y_vals;
@@ -121,6 +125,32 @@ int main() {
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
+
+//          next_x_vals = {0, 10, 20, 30, 40, 50};
+//          next_y_vals = {0, 0, 0, 0, 0, 0};
+          // transform the waypoints from map coordinate to vehicle coornidate
+//          relativeX = B.x - A.x
+//          relativeY = B.y - A.y
+//          rotatedX = Cos(-Angle) * relativeX - Sin(-Angle) * relativeY
+//          rotatedY = Cos(-Angle) * relativeY + Sin(-Angle) * relativeX
+//          next_y_vals = {0, 0, 0, 0, 0, 0};
+          next_x_vals.resize(ptsx.size());
+          next_y_vals.resize(ptsy.size());
+
+          if (ptsx.size() > 0 && (ptsx.size() == ptsy.size())) {
+            for (int i = 0; i < ptsx.size(); i++) {
+              double relativeX = ptsx[i] - px;
+              double relativeY = ptsy[i] - py;
+              double psi_unity = psi - M_PI/2;
+              double rotatedX = cos(-psi_unity) * relativeX - sin(-psi_unity) * relativeY;
+              double rotatedY = cos(-psi_unity) * relativeY + sin(-psi_unity) * relativeX;
+              next_x_vals[i] = rotatedY;
+              next_y_vals[i] = -rotatedX;
+            }
+          }
+
+
+
 
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;

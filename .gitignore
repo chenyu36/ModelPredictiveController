@@ -1,0 +1,47 @@
+# silly macOS
+.DS_Store
+
+# build files
+build/
+
+# editor config
+.vscode/
+
+# cmakefiles
+./cmake-build-debug/
+./cmake-build-debug/CMakeFiles/
+./cmake-build-debug/CMakeFiles/3.6.3/
+./cmake-build-debug/CMakeFiles/3.7.2/
+./cmake-build-debug/CMakeFiles/CMakeTmp/
+./cmake-build-debug/CMakeFiles/mpc.dir/
+./.idea/
+!./cmake-build-debug/mpc
+!./cmake-build-debug/mpc.exe
+
+*.o
+
+*.includecache
+
+*.internal
+
+./.idea/workspace.xml
+.idea/.name
+.idea/misc.xml
+.idea/modules.xml
+.idea/CarND-MPC-Project.iml
+.idea/vcs.xml
+.idea/
+cmake-build-debug/output1.txt
+cmake-build-debug/Makefile
+cmake-build-debug/CMakeFiles/mpc.dir/src/MPC.cpp.o
+cmake-build-debug/CMakeFiles/mpc.dir/src/main.cpp.o
+cmake-build-debug/
+cmake-build-debug/CMakeFiles/
+cmake-build-debug/CMakeFiles/3.6.3/
+cmake-build-debug/CMakeFiles/3.7.1/
+cmake-build-debug/CMakeFiles/3.7.2/
+cmake-build-debug/CMakeFiles/3.8.0/
+cmake-build-debug/CMakeFiles/CMakeTmp/
+
+#beta code
+beta_code/
