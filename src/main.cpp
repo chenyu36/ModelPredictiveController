@@ -65,11 +65,14 @@ Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals,
   return result;
 }
 
+
 int main() {
   uWS::Hub h;
 
   // MPC is initialized here!
   MPC mpc;
+
+
 
   h.onMessage([&mpc](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
@@ -100,6 +103,26 @@ int main() {
           */
           double steer_value;
           double throttle_value;
+
+          // Before fitting the polynomial, map the vector type to Eigen::VectorXd
+          // because polyfit() function accept the first 2 parameter type as Eigen::VectorXd
+          Eigen::VectorXd coeffs;
+          Eigen::VectorXd ptsx_e = Eigen::VectorXd::Map(ptsx.data(), ptsx.size());
+          Eigen::VectorXd ptsy_e = Eigen::VectorXd::Map(ptsy.data(), ptsy.size());
+          if ((ptsx.size() > 0) && (ptsy.size() > 0) && (ptsx.size() == ptsy.size())) {
+            // fit the polynomial with 2nd order curve
+            coeffs = polyfit(ptsx_e, ptsy_e, 2);
+          }
+
+          // The cross track error is calculated by evaluating at polynomial at x, f(x)
+          // and subtracting y.
+          double cte = polyeval(coeffs, px) - py;
+          // Due to the sign starting at 0, the orientation error is -f'(x).
+          // derivative of coeffs[0] + coeffs[1] * x -> coeffs[1]
+          double epsi = -atan(coeffs[1]);
+
+          Eigen::VectorXd state(6);
+          state << px, py, psi - M_PI/2, v, cte, epsi;
 
           steer_value = -1.0*M_PI/180.0; // curve to the left
           throttle_value = 0.05;
