@@ -45,3 +45,4 @@ cmake-build-debug/CMakeFiles/CMakeTmp/
 
 #beta code
 beta_code/
+src/MPC_line_solution.cpp.txt

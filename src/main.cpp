@@ -122,10 +122,14 @@ int main() {
           double epsi = -atan(coeffs[1]);
 
           Eigen::VectorXd state(6);
-          state << px, py, psi - M_PI/2, v, cte, epsi;
+          state << px, py, (psi - M_PI/2), v, cte, epsi;  // TODO: test to see if psi can be used as is or in the form of (psi - M_PI/2)
 
-          steer_value = -1.0*M_PI/180.0; // curve to the left
-          throttle_value = 0.05;
+          auto vars = mpc.Solve(state, coeffs);
+          steer_value = vars[0];
+          throttle_value = vars[1];
+
+//          steer_value = -1.0*M_PI/180.0; // TODO: test only, remove after test. Curve to the left
+//          throttle_value = 0.05;// TODO: test only, remove after test
           json msgJson;
           msgJson["steering_angle"] = steer_value;
           msgJson["throttle"] = throttle_value;
