@@ -1,8 +1,12 @@
 #include "MPC.h"
+#include <math.h>
 #include <cppad/cppad.hpp>
 #include <cppad/ipopt/solve.hpp>
 #include "Eigen-3.3/Eigen/Core"
+#include "Eigen-3.3/Eigen/QR"
+#include "matplotlibcpp.h" // TODO: When done, remove this and the target_link_libraries about python in CMakeLists.txt
 
+namespace plt = matplotlibcpp;
 using CppAD::AD;
 
 // TODO: Set the timestep length and duration
