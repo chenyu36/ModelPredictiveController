@@ -116,6 +116,16 @@ int main() {
           double steer_value;
           double throttle_value;
 
+          // transform the map coordinate to car coordinate
+          for (int i = 0; i < ptsx.size(); i++) {
+            double relativeX = ptsx[i] - px;
+            double relativeY = ptsy[i] - py;
+            double psi_unity = psi - M_PI/2;
+            double rotatedX = cos(-psi_unity) * relativeX - sin(-psi_unity) * relativeY;
+            double rotatedY = cos(-psi_unity) * relativeY + sin(-psi_unity) * relativeX;
+            ptsx[i] = rotatedY;
+            ptsy[i] = -rotatedX;
+          }
 
 
           // Before fitting the polynomial, map the vector type to Eigen::VectorXd
@@ -123,6 +133,8 @@ int main() {
           Eigen::VectorXd coeffs;
           Eigen::VectorXd ptsx_e = Eigen::VectorXd::Map(ptsx.data(), ptsx.size());
           Eigen::VectorXd ptsy_e = Eigen::VectorXd::Map(ptsy.data(), ptsy.size());
+
+
 
           // debug
 //          cout << "before" << endl;
@@ -142,17 +154,17 @@ int main() {
 
           // The cross track error is calculated by evaluating at polynomial at x, f(x)
           // and subtracting y.
-          double cte = polyeval(coeffs, px) - py;
+          double cte = polyeval(coeffs, 0) - 0;
           // Due to the sign starting at 0, the orientation error is -f'(x).
           // derivative of coeffs[0] + coeffs[1] * x + coeffs[2] * x^2 -> coeffs[1] + 2 * coeffs[2] * x
-          double epsi = psi - atan(coeffs[1] + 2 * coeffs[2] * px + 3 * coeffs[3] * px * px);
+          double epsi = 0 - atan(coeffs[1] + 2 * coeffs[2] * 0 + 3 * coeffs[3] * 0 * 0);
 
           // debug
           cout << "psi " << psi << endl;
           cout << "atan(coeffs[1] + 2 * coeffs[2] * px + 3 * coeffs[3] * px * px) " << epsi << endl;
 
           Eigen::VectorXd state(6);
-          state << px, py, psi, v, cte, epsi;  // TODO: test to see if psi can be used as is or in the form of (psi - M_PI/2)
+          state << 0, 0, 0, v, cte, epsi;  // TODO: test to see if psi can be used as is or in the form of (psi - M_PI/2)
 
           auto vars = mpc.Solve(state, coeffs);
           steer_value = -vars[2];
@@ -222,19 +234,20 @@ int main() {
           next_x_vals.resize(ptsx.size());
           next_y_vals.resize(ptsy.size());
 
-          if (ptsx.size() > 0 && (ptsx.size() == ptsy.size())) {
-            for (int i = 0; i < ptsx.size(); i++) {
-              double relativeX = ptsx[i] - px;
-              double relativeY = ptsy[i] - py;
-              double psi_unity = psi - M_PI/2;
-              double rotatedX = cos(-psi_unity) * relativeX - sin(-psi_unity) * relativeY;
-              double rotatedY = cos(-psi_unity) * relativeY + sin(-psi_unity) * relativeX;
-              next_x_vals[i] = rotatedY;
-              next_y_vals[i] = -rotatedX;
-            }
-          }
+//          if (ptsx.size() > 0 && (ptsx.size() == ptsy.size())) {
+//            for (int i = 0; i < ptsx.size(); i++) {
+//              double relativeX = ptsx[i] - px;
+//              double relativeY = ptsy[i] - py;
+//              double psi_unity = psi - M_PI/2;
+//              double rotatedX = cos(-psi_unity) * relativeX - sin(-psi_unity) * relativeY;
+//              double rotatedY = cos(-psi_unity) * relativeY + sin(-psi_unity) * relativeX;
+//              next_x_vals[i] = rotatedY;
+//              next_y_vals[i] = -rotatedX;
+//            }
+//          }
 
-
+          next_x_vals = ptsx;
+          next_y_vals = ptsy;
 
 
           msgJson["next_x"] = next_x_vals;
