@@ -16,6 +16,14 @@ using json = nlohmann::json;
 constexpr double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
 double rad2deg(double x) { return x * 180 / pi(); }
+double normalizeAngle(double psi) {
+  const double Max = M_PI;
+  const double Min = -M_PI;
+
+  return psi < Min
+         ? Max + std::fmod(psi - Min, Max - Min)
+         : std::fmod(psi - Min, Max - Min) + Min;
+}
 
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
@@ -31,6 +39,10 @@ string hasData(string s) {
   }
   return "";
 }
+
+//
+// Helper functions to fit and evaluate polynomials.
+//
 
 // Evaluate a polynomial.
 double polyeval(Eigen::VectorXd coeffs, double x) {
@@ -80,7 +92,7 @@ int main() {
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
     string sdata = string(data).substr(0, length);
-    cout << sdata << endl;
+    //cout << sdata << endl;
     if (sdata.size() > 2 && sdata[0] == '4' && sdata[1] == '2') {
       string s = hasData(sdata);
       if (s != "") {
@@ -104,11 +116,25 @@ int main() {
           double steer_value;
           double throttle_value;
 
+
+
           // Before fitting the polynomial, map the vector type to Eigen::VectorXd
           // because polyfit() function accept the first 2 parameter type as Eigen::VectorXd
           Eigen::VectorXd coeffs;
           Eigen::VectorXd ptsx_e = Eigen::VectorXd::Map(ptsx.data(), ptsx.size());
           Eigen::VectorXd ptsy_e = Eigen::VectorXd::Map(ptsy.data(), ptsy.size());
+
+          // debug
+//          cout << "before" << endl;
+//          for (int i=0; i < ptsx.size(); i++) {
+//            cout << "ptsx " << i << " " << ptsx[i] << "\t" << "ptsy " << i << " " << ptsy[i] << endl;
+//          }
+//          cout << "after" << endl;
+//          for (int i=0; i < ptsx_e.size(); i++) {
+//            cout << "ptsx_e " << i << " " << ptsx_e[i] << "\t" << "ptsy_e " << i << " " << ptsy_e[i] << endl;
+//          }
+
+
           if ((ptsx.size() > 0) && (ptsy.size() > 0) && (ptsx.size() == ptsy.size())) {
             // fit the polynomial with 2nd order curve
             coeffs = polyfit(ptsx_e, ptsy_e, 2);
@@ -118,21 +144,41 @@ int main() {
           // and subtracting y.
           double cte = polyeval(coeffs, px) - py;
           // Due to the sign starting at 0, the orientation error is -f'(x).
-          // derivative of coeffs[0] + coeffs[1] * x -> coeffs[1]
-          double epsi = -atan(coeffs[1]);
+          // derivative of coeffs[0] + coeffs[1] * x + coeffs[2] * x^2 -> coeffs[1] + 2 * coeffs[2] * x
+          double epsi = psi - atan(coeffs[1] + 2 * coeffs[2] * px);
+
+          // debug
+          cout << "psi " << psi << endl;
+          cout << "atan(coeffs[1] + 2 * coeffs[2] * px) " << atan(coeffs[1] + 2 * coeffs[2] * px) << endl;
 
           Eigen::VectorXd state(6);
-          state << px, py, (psi - M_PI/2), v, cte, epsi;  // TODO: test to see if psi can be used as is or in the form of (psi - M_PI/2)
+          state << px, py, psi, v, cte, epsi;  // TODO: test to see if psi can be used as is or in the form of (psi - M_PI/2)
 
           auto vars = mpc.Solve(state, coeffs);
-          steer_value = vars[0];
-          throttle_value = vars[1];
+          steer_value = vars[2];
+          throttle_value = vars[3];
+          // debug
+          cout << "steering_value " << steer_value << endl;
+          cout << "throttle_value " << throttle_value << endl;
 
-//          steer_value = -1.0*M_PI/180.0; // TODO: test only, remove after test. Curve to the left
-//          throttle_value = 0.05;// TODO: test only, remove after test
+          if (steer_value > 1) {
+            steer_value = 1;
+          }
+          if (steer_value < -1) {
+            steer_value = -1;
+          }
+
+          if (throttle_value > 1) {
+            throttle_value = 1;
+          }
+          if (throttle_value < -1) {
+            throttle_value = -1;
+          }
+          steer_value = -1.0*M_PI/180.0; // TODO: test only, remove after test. Curve to the left
+          throttle_value = 0.05;// TODO: test only, remove after test
           json msgJson;
-          msgJson["steering_angle"] = steer_value;
-          msgJson["throttle"] = throttle_value;
+//          msgJson["steering_angle"] = steer_value;
+//          msgJson["throttle"] = throttle_value;
 
           //Display the MPC predicted trajectory 
           vector<double> mpc_x_vals;
@@ -140,8 +186,20 @@ int main() {
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Green line
-          mpc_x_vals = {0, 5, 10, 15, 20, 25};
-          mpc_y_vals = {0, 0, 0, 0, 0, 0};
+//          mpc_x_vals = {0, 5, 10, 15, 20, 25};
+//          mpc_y_vals = {0, 0, 0, 0, 0, 0};
+          double mpc_predicted_x = vars[0];
+          double mpc_predicted_y = vars[1];
+          double relativeX = mpc_predicted_x - px;
+          double relativeY = mpc_predicted_y - py;
+          double psi_unity = psi - M_PI/2;
+          double rotatedX = cos(-psi_unity) * relativeX - sin(-psi_unity) * relativeY;
+          double rotatedY = cos(-psi_unity) * relativeY + sin(-psi_unity) * relativeX;
+          cout << "predicted x value " << rotatedY << endl;
+          cout << "predicted y value " << -rotatedX << endl;
+          mpc_x_vals.push_back(rotatedY);
+          mpc_y_vals.push_back(-rotatedX);
+
 
           msgJson["mpc_x"] = mpc_x_vals;
           msgJson["mpc_y"] = mpc_y_vals;
@@ -184,7 +242,7 @@ int main() {
 
 
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
-          std::cout << msg << std::endl;
+          //std::cout << msg << std::endl;
           // Latency
           // The purpose is to mimic real driving conditions where
           // the car does actuate the commands instantly.
