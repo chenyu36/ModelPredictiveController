@@ -11,7 +11,7 @@ using CppAD::AD;
 
 // TODO: Set the timestep length and duration
 size_t N = 25;
-double dt = 0.1;
+double dt = 0.05;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -30,7 +30,7 @@ const double Lf = 2.67;
 // TODO: Chris. Experiment with velocity.
 double ref_cte = 0;
 double ref_epsi = 0;
-double ref_v = 20;
+double ref_v = 10;
 // The solver takes all the state variables and actuator
 // variables in a singular vector. Thus, we should establish
 // when one variable starts and another ends to make our lifes easier.
@@ -118,8 +118,8 @@ class FG_eval {
       AD<double> delta0 = vars[delta_start + i];
       AD<double> a0 = vars[a_start + i];
 
-      AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[2] * x0 * x0;
-      AD<double> psides0 = CppAD::atan(coeffs[1] + 2 * coeffs[2] * x0); // f0': the derivative of f0
+      AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[2] * x0 * x0 + coeffs[3] * x0 * x0 * x0;
+      AD<double> psides0 = CppAD::atan(coeffs[1] + 2 * coeffs[2] * x0 + 3 * coeffs[3] * x0 * x0); // f0': the derivative of f0
 
       // Here's `x` to get you started.
       // The idea here is to constraint this value to be 0.

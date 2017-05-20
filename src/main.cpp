@@ -137,7 +137,7 @@ int main() {
 
           if ((ptsx.size() > 0) && (ptsy.size() > 0) && (ptsx.size() == ptsy.size())) {
             // fit the polynomial with 2nd order curve
-            coeffs = polyfit(ptsx_e, ptsy_e, 2);
+            coeffs = polyfit(ptsx_e, ptsy_e, 3);
           }
 
           // The cross track error is calculated by evaluating at polynomial at x, f(x)
@@ -145,17 +145,17 @@ int main() {
           double cte = polyeval(coeffs, px) - py;
           // Due to the sign starting at 0, the orientation error is -f'(x).
           // derivative of coeffs[0] + coeffs[1] * x + coeffs[2] * x^2 -> coeffs[1] + 2 * coeffs[2] * x
-          double epsi = psi - atan(coeffs[1] + 2 * coeffs[2] * px);
+          double epsi = psi - atan(coeffs[1] + 2 * coeffs[2] * px + 3 * coeffs[3] * px * px);
 
           // debug
           cout << "psi " << psi << endl;
-          cout << "atan(coeffs[1] + 2 * coeffs[2] * px) " << atan(coeffs[1] + 2 * coeffs[2] * px) << endl;
+          cout << "atan(coeffs[1] + 2 * coeffs[2] * px + 3 * coeffs[3] * px * px) " << epsi << endl;
 
           Eigen::VectorXd state(6);
           state << px, py, psi, v, cte, epsi;  // TODO: test to see if psi can be used as is or in the form of (psi - M_PI/2)
 
           auto vars = mpc.Solve(state, coeffs);
-          steer_value = vars[2];
+          steer_value = -vars[2];
           throttle_value = vars[3];
           // debug
           cout << "steering_value " << steer_value << endl;
@@ -174,11 +174,11 @@ int main() {
           if (throttle_value < -1) {
             throttle_value = -1;
           }
-          steer_value = -1.0*M_PI/180.0; // TODO: test only, remove after test. Curve to the left
-          throttle_value = 0.05;// TODO: test only, remove after test
+//          steer_value = -1.0*M_PI/180.0; // TODO: test only, remove after test. Curve to the left
+//          throttle_value = 0.05;// TODO: test only, remove after test
           json msgJson;
-//          msgJson["steering_angle"] = steer_value;
-//          msgJson["throttle"] = throttle_value;
+          msgJson["steering_angle"] = steer_value;
+          msgJson["throttle"] = throttle_value;
 
           //Display the MPC predicted trajectory 
           vector<double> mpc_x_vals;
