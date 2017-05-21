@@ -163,8 +163,11 @@ int main() {
           cout << "psi " << psi << endl;
           cout << "atan(coeffs[1] + 2 * coeffs[2] * px + 3 * coeffs[3] * px * px) " << epsi << endl;
 
+          // account for latency
+          double dx = v * 0.1; // due to 0.1 = 100ms latency, the car
+          // would have already travel (=v*latency) before the actuator does something
           Eigen::VectorXd state(6);
-          state << 0, 0, 0, v, cte, epsi;  // TODO: test to see if psi can be used as is or in the form of (psi - M_PI/2)
+          state << dx, 0, 0, v, cte, epsi;  // TODO: test to see if psi can be used as is or in the form of (psi - M_PI/2)
 
           auto vars = mpc.Solve(state, coeffs);
           steer_value = -vars[0];

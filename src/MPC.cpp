@@ -11,7 +11,7 @@ using CppAD::AD;
 
 // TODO: Set the timestep length and duration
 size_t N = 25;
-double dt = 0.05;
+double dt = 0.02;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -30,7 +30,7 @@ const double Lf = 2.67;
 // TODO: Chris. Experiment with velocity.
 double ref_cte = 0;
 double ref_epsi = 0;
-double ref_v = 20;
+double ref_v = 30;
 // The solver takes all the state variables and actuator
 // variables in a singular vector. Thus, we should establish
 // when one variable starts and another ends to make our lifes easier.
