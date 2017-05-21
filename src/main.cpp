@@ -120,7 +120,7 @@ int main() {
           for (int i = 0; i < ptsx.size(); i++) {
             double relativeX = ptsx[i] - px;
             double relativeY = ptsy[i] - py;
-            double psi_unity = psi - M_PI/2;
+            double psi_unity = psi - M_PI / 2;
             double rotatedX = cos(-psi_unity) * relativeX - sin(-psi_unity) * relativeY;
             double rotatedY = cos(-psi_unity) * relativeY + sin(-psi_unity) * relativeX;
             ptsx[i] = rotatedY;
@@ -167,8 +167,8 @@ int main() {
           state << 0, 0, 0, v, cte, epsi;  // TODO: test to see if psi can be used as is or in the form of (psi - M_PI/2)
 
           auto vars = mpc.Solve(state, coeffs);
-          steer_value = -vars[2];
-          throttle_value = vars[3];
+          steer_value = -vars[0];
+          throttle_value = vars[1];
           // debug
           cout << "steering_value " << steer_value << endl;
           cout << "throttle_value " << throttle_value << endl;
@@ -186,8 +186,6 @@ int main() {
           if (throttle_value < -1) {
             throttle_value = -1;
           }
-//          steer_value = -1.0*M_PI/180.0; // TODO: test only, remove after test. Curve to the left
-//          throttle_value = 0.05;// TODO: test only, remove after test
           json msgJson;
           msgJson["steering_angle"] = steer_value;
           msgJson["throttle"] = throttle_value;
@@ -198,20 +196,13 @@ int main() {
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Green line
-//          mpc_x_vals = {0, 5, 10, 15, 20, 25};
-//          mpc_y_vals = {0, 0, 0, 0, 0, 0};
-          double mpc_predicted_x = vars[0];
-          double mpc_predicted_y = vars[1];
-          double relativeX = mpc_predicted_x - px;
-          double relativeY = mpc_predicted_y - py;
-          double psi_unity = psi - M_PI/2;
-          double rotatedX = cos(-psi_unity) * relativeX - sin(-psi_unity) * relativeY;
-          double rotatedY = cos(-psi_unity) * relativeY + sin(-psi_unity) * relativeX;
-          cout << "predicted x value " << rotatedY << endl;
-          cout << "predicted y value " << -rotatedX << endl;
-          mpc_x_vals.push_back(rotatedY);
-          mpc_y_vals.push_back(-rotatedX);
-
+          int mpc_val_size = mpc.mpc_x_vals_.size();
+          mpc_x_vals.resize(mpc_val_size);
+          mpc_y_vals.resize(mpc_val_size);
+          for (int i = 0; i < mpc_val_size; i++) {
+            mpc_x_vals[i] = mpc.mpc_x_vals_[i];
+            mpc_y_vals[i] = mpc.mpc_y_vals_[i];
+          }
 
           msgJson["mpc_x"] = mpc_x_vals;
           msgJson["mpc_y"] = mpc_y_vals;

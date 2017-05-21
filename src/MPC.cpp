@@ -146,7 +146,10 @@ class FG_eval {
 //
 // MPC class definition implementation.
 //
-MPC::MPC() {}
+MPC::MPC() {
+  mpc_x_vals_.resize(N);
+  mpc_y_vals_.resize(N);
+}
 MPC::~MPC() {}
 
 vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
@@ -263,12 +266,18 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   auto cost = solution.obj_value;
   std::cout << "Cost " << cost << std::endl;
 
-  // TODO: Return the first actuator values. The variables can be accessed with
+  // Store the mpc predicted x, y values to be passed back to the simulator
+  // for visualization as green lines
+  for (int i = 0; i < N; i++){
+    mpc_x_vals_[i] = solution.x[x_start + i] ;
+    mpc_y_vals_[i] = solution.x[y_start + i] ;
+  }
+
+  // Return the actuator values. The variables can be accessed with
   // `solution.x[i]`.
   //
   // {...} is shorthand for creating a vector
-  // create a 4 element vector.
-  return {solution.x[x_start + 1], solution.x[y_start + 1],
-          solution.x[delta_start], solution.x[a_start]};
+  // create a 2 element vector.
+  return {solution.x[delta_start], solution.x[a_start]};
 }
 
