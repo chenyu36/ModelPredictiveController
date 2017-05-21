@@ -10,8 +10,8 @@ namespace plt = matplotlibcpp;
 using CppAD::AD;
 
 // TODO: Set the timestep length and duration
-size_t N = 25;
-double dt = 0.02;
+size_t N = 6;
+double dt = 0.1;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -30,7 +30,7 @@ const double Lf = 2.67;
 // TODO: Chris. Experiment with velocity.
 double ref_cte = 0;
 double ref_epsi = 0;
-double ref_v = 30;
+double ref_v = 50;
 // The solver takes all the state variables and actuator
 // variables in a singular vector. Thus, we should establish
 // when one variable starts and another ends to make our lifes easier.
