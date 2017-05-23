@@ -4,6 +4,7 @@
 #include <cppad/ipopt/solve.hpp>
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
+#include <chrono>
 #include "matplotlibcpp.h" // TODO: When done, remove this and the target_link_libraries about python in CMakeLists.txt
 
 namespace plt = matplotlibcpp;
@@ -11,7 +12,7 @@ using CppAD::AD;
 
 // TODO: Set the timestep length and duration
 size_t N = 6;
-double dt = 0.1;
+double dt = 0.05;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -30,7 +31,7 @@ const double Lf = 2.67;
 // TODO: Chris. Experiment with velocity.
 double ref_cte = 0;
 double ref_epsi = 0;
-double ref_v = 50;
+double ref_v = 64;
 // The solver takes all the state variables and actuator
 // variables in a singular vector. Thus, we should establish
 // when one variable starts and another ends to make our lifes easier.
@@ -42,6 +43,8 @@ size_t cte_start = v_start + N;
 size_t epsi_start = cte_start + N;
 size_t delta_start = epsi_start + N;
 size_t a_start = delta_start + N - 1;
+
+size_t n_samples_for_average = 10;
 class FG_eval {
  public:
   // Fitted polynomial coefficients
@@ -74,8 +77,8 @@ class FG_eval {
 
     // Minimize the value gap between sequential actuations.
     for (int i = 0; i < N - 2; i++) {
-      fg[0] += 100 * CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
-      fg[0] += 10 * CppAD::pow(vars[a_start + i + 1] - vars[a_start + i], 2);
+      fg[0] += 400 * CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
+      fg[0] += 20 * CppAD::pow(vars[a_start + i + 1] - vars[a_start + i], 2);
     }
     // NOTE: You'll probably go back and forth between this function and
     // the Solver function below.
@@ -153,6 +156,8 @@ MPC::MPC() {
 MPC::~MPC() {}
 
 vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
+  static vector<long long> solve_time;
+  long long sum_of_solve_time;
   bool ok = true;
   size_t i;
   typedef CPPAD_TESTVECTOR(double) Dvector;
@@ -171,6 +176,8 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   size_t n_vars = N * 6 + (N - 1) * 2;
   // TODO: Set the number of constraints
   size_t n_constraints = N * 6;
+
+  auto t_before_Solve = chrono::high_resolution_clock::now();
 
   // Initial value of the independent variables.
   // SHOULD BE 0 besides initial state.
@@ -273,6 +280,20 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     mpc_y_vals_[i] = solution.x[y_start + i] ;
   }
 
+  auto t_Solving = chrono::high_resolution_clock::now() - t_before_Solve;
+  long long t_Solving_ms = chrono::duration_cast<chrono::milliseconds>(t_Solving).count();
+  cout << "t_Solving_ms " << t_Solving_ms << " ms" << endl;
+
+  // average the solving time from the last 10 executions
+  if (solve_time.size() < n_samples_for_average) {
+    solve_time.push_back(t_Solving_ms);
+    average_solve_time_ = 0.0;
+  } else {
+    solve_time.erase(solve_time.begin());
+    solve_time.push_back(t_Solving_ms);
+    sum_of_solve_time = std::accumulate(solve_time.begin(), solve_time.end(), 0);
+    average_solve_time_ = ((double)sum_of_solve_time)/(n_samples_for_average*1000); // convert milliseconds into seconds
+  }
   // Return the actuator values. The variables can be accessed with
   // `solution.x[i]`.
   //

@@ -83,7 +83,8 @@ int main() {
 
   // MPC is initialized here!
   MPC mpc;
-
+  static double acceleration = 0;
+  static long long t_sleep_time_ms = 100;
 
 
   h.onMessage([&mpc](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
@@ -127,14 +128,11 @@ int main() {
             ptsy[i] = -rotatedX;
           }
 
-
           // Before fitting the polynomial, map the vector type to Eigen::VectorXd
           // because polyfit() function accept the first 2 parameter type as Eigen::VectorXd
           Eigen::VectorXd coeffs;
           Eigen::VectorXd ptsx_e = Eigen::VectorXd::Map(ptsx.data(), ptsx.size());
           Eigen::VectorXd ptsy_e = Eigen::VectorXd::Map(ptsy.data(), ptsy.size());
-
-
 
           // debug
 //          cout << "before" << endl;
@@ -163,15 +161,24 @@ int main() {
           cout << "psi " << psi << endl;
           cout << "atan(coeffs[1] + 2 * coeffs[2] * px + 3 * coeffs[3] * px * px) " << epsi << endl;
 
-          // account for latency
-          double dx = v * 0.1; // due to 0.1 = 100ms latency, the car
-          // would have already travel (=v*latency) before the actuator does something
-          Eigen::VectorXd state(6);
-          state << dx, 0, 0, v, cte, epsi;  // TODO: test to see if psi can be used as is or in the form of (psi - M_PI/2)
+          // account for latency: time used by thread sleep + time used for Solve() function
+          // during this time, the car continues to travel before the actuator command got sent back to the simulator
+          double total_latency = t_sleep_time_ms/1000.0 + mpc.average_solve_time_;
+          cout << "mpc.average_solve_time_ " << mpc.average_solve_time_ << endl;
+          cout << "total latency " << total_latency << endl;
 
-          auto vars = mpc.Solve(state, coeffs);
-          steer_value = -vars[0];
-          throttle_value = vars[1];
+          double dv = acceleration * total_latency;
+          double dx = (v + dv) * total_latency;
+          cout << "dv " << dv << endl;
+
+          Eigen::VectorXd state(6);
+          state << dx, 0, 0, (v + dv), cte, epsi;
+
+          auto actuators = mpc.Solve(state, coeffs);
+          steer_value = -actuators[0];
+          throttle_value = actuators[1];
+          // TODO: experiment, remove if not useful
+          acceleration = actuators[1];
           // debug
           cout << "steering_value " << steer_value << endl;
           cout << "throttle_value " << throttle_value << endl;
@@ -216,43 +223,23 @@ int main() {
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
-
-//          next_x_vals = {0, 10, 20, 30, 40, 50};
-//          next_y_vals = {0, 0, 0, 0, 0, 0};
-          // transform the waypoints from map coordinate to vehicle coornidate
-//          relativeX = B.x - A.x
-//          relativeY = B.y - A.y
-//          rotatedX = Cos(-Angle) * relativeX - Sin(-Angle) * relativeY
-//          rotatedY = Cos(-Angle) * relativeY + Sin(-Angle) * relativeX
-//          next_y_vals = {0, 0, 0, 0, 0, 0};
           next_x_vals.resize(ptsx.size());
           next_y_vals.resize(ptsy.size());
 
-//          if (ptsx.size() > 0 && (ptsx.size() == ptsy.size())) {
-//            for (int i = 0; i < ptsx.size(); i++) {
-//              double relativeX = ptsx[i] - px;
-//              double relativeY = ptsy[i] - py;
-//              double psi_unity = psi - M_PI/2;
-//              double rotatedX = cos(-psi_unity) * relativeX - sin(-psi_unity) * relativeY;
-//              double rotatedY = cos(-psi_unity) * relativeY + sin(-psi_unity) * relativeX;
-//              next_x_vals[i] = rotatedY;
-//              next_y_vals[i] = -rotatedX;
-//            }
-//          }
-
           next_x_vals = ptsx;
           next_y_vals = ptsy;
-
 
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
 
 
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
+
+          auto t_before_sleep = chrono::high_resolution_clock::now();
           //std::cout << msg << std::endl;
           // Latency
           // The purpose is to mimic real driving conditions where
-          // the car does actuate the commands instantly.
+          // the car does not actuate the commands instantly.
           //
           // Feel free to play around with this value but should be to drive
           // around the track with 100ms latency.
@@ -260,6 +247,11 @@ int main() {
           // NOTE: REMEMBER TO SET THIS TO 100 MILLISECONDS BEFORE
           // SUBMITTING.
           this_thread::sleep_for(chrono::milliseconds(100));
+
+          // Measure actual sleep time
+          auto t_sleep_time = chrono::high_resolution_clock::now() - t_before_sleep;
+          t_sleep_time_ms = chrono::duration_cast<chrono::milliseconds>(t_sleep_time).count();
+
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
         }
       } else {
