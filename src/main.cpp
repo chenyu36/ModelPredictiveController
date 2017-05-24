@@ -167,10 +167,14 @@ int main() {
           double dx = (v + dv) * total_latency;
           // The cross track error is calculated by evaluating at polynomial at x, f(x)
           // and subtracting y.
+          // in car coordinate, (x, y) = (0, 0), but we account for dx caused by latency.
           double cte = polyeval(coeffs, dx) - 0;
-          // Due to the sign starting at 0, the orientation error is -f'(x).
-          // derivative of coeffs[0] + coeffs[1] * x + coeffs[2] * x^2 -> coeffs[1] + 2 * coeffs[2] * x
-          double epsi = dx - atan(coeffs[1] + 2 * coeffs[2] * dx + 3 * coeffs[3] * dx * dx);
+          // epsi = psi - desired_psi
+          // where psi is 0 in the car coordinate
+          // desired_psi = arctan(f'(x)) where f(x) = coeffs[0] + coeffs[1] * x + coeffs[2] * x^2 + coeffs[3] * x^3
+          // f'(x) = coeffs[1] + 2 * coeffs[2] * dx + 3 * coeffs[3] * dx * dx
+          // again, in car coordinate, (x, y) = (0, 0), but we account for dx caused by latency.
+          double epsi = 0 - atan(coeffs[1] + 2 * coeffs[2] * dx + 3 * coeffs[3] * dx * dx);
 
           // debug
           if (mpc.is_debug_active) {
@@ -179,6 +183,7 @@ int main() {
           }
 
           Eigen::VectorXd state(6);
+          // in car coordinate, (x, y) = (0, 0), but we account for dx and dv caused by latency
           state << dx, 0, 0, (v + dv), cte, epsi;
 
           // Calculate steeering angle and throttle using MPC
@@ -209,7 +214,7 @@ int main() {
             throttle_value = -1;
           }
 
-          // set the json object with control input to the simulator
+          // set the json object with the calculated control input to the simulator
           json msgJson;
           msgJson["steering_angle"] = steer_value;
           msgJson["throttle"] = throttle_value;
