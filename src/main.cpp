@@ -86,14 +86,15 @@ int main() {
   static double acceleration = 0;
   static long long t_sleep_time_ms = 100;
 
-
   h.onMessage([&mpc](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
     string sdata = string(data).substr(0, length);
-    //cout << sdata << endl;
+    if (mpc.is_debug_active) {
+      cout << sdata << endl;
+    }
     if (sdata.size() > 2 && sdata[0] == '4' && sdata[1] == '2') {
       string s = hasData(sdata);
       if (s != "") {
@@ -109,15 +110,15 @@ int main() {
           double v = j[1]["speed"];
 
           /*
-          * TODO: Calculate steeering angle and throttle using MPC.
-          *
+          * Declare the control input to the simulator
+          * steeering angle and throttle
           * Both are in between [-1, 1].
           *
           */
           double steer_value;
           double throttle_value;
 
-          // transform the map coordinate to car coordinate
+          // Transform the map coordinate to car coordinate
           for (int i = 0; i < ptsx.size(); i++) {
             double relativeX = ptsx[i] - px;
             double relativeY = ptsy[i] - py;
@@ -129,20 +130,22 @@ int main() {
           }
 
           // Before fitting the polynomial, map the vector type to Eigen::VectorXd
-          // because polyfit() function accept the first 2 parameter type as Eigen::VectorXd
+          // because polyfit() function accepts the first 2 parameter type as Eigen::VectorXd
           Eigen::VectorXd coeffs;
           Eigen::VectorXd ptsx_e = Eigen::VectorXd::Map(ptsx.data(), ptsx.size());
           Eigen::VectorXd ptsy_e = Eigen::VectorXd::Map(ptsy.data(), ptsy.size());
 
           // debug
-//          cout << "before" << endl;
-//          for (int i=0; i < ptsx.size(); i++) {
-//            cout << "ptsx " << i << " " << ptsx[i] << "\t" << "ptsy " << i << " " << ptsy[i] << endl;
-//          }
-//          cout << "after" << endl;
-//          for (int i=0; i < ptsx_e.size(); i++) {
-//            cout << "ptsx_e " << i << " " << ptsx_e[i] << "\t" << "ptsy_e " << i << " " << ptsy_e[i] << endl;
-//          }
+          if (mpc.is_debug_active) {
+            cout << "before" << endl;
+            for (int i = 0; i < ptsx.size(); i++) {
+              cout << "ptsx " << i << " " << ptsx[i] << "\t" << "ptsy " << i << " " << ptsy[i] << endl;
+            }
+            cout << "after" << endl;
+            for (int i = 0; i < ptsx_e.size(); i++) {
+              cout << "ptsx_e " << i << " " << ptsx_e[i] << "\t" << "ptsy_e " << i << " " << ptsy_e[i] << endl;
+            }
+          }
 
 
           if ((ptsx.size() > 0) && (ptsy.size() > 0) && (ptsx.size() == ptsy.size())) {
@@ -150,57 +153,68 @@ int main() {
             coeffs = polyfit(ptsx_e, ptsy_e, 3);
           }
 
-          // The cross track error is calculated by evaluating at polynomial at x, f(x)
-          // and subtracting y.
-          double cte = polyeval(coeffs, 0) - 0;
-          // Due to the sign starting at 0, the orientation error is -f'(x).
-          // derivative of coeffs[0] + coeffs[1] * x + coeffs[2] * x^2 -> coeffs[1] + 2 * coeffs[2] * x
-          double epsi = 0 - atan(coeffs[1] + 2 * coeffs[2] * 0 + 3 * coeffs[3] * 0 * 0);
-
-          // debug
-          cout << "psi " << psi << endl;
-          cout << "atan(coeffs[1] + 2 * coeffs[2] * px + 3 * coeffs[3] * px * px) " << epsi << endl;
-
           // account for latency: time used by thread sleep + time used for Solve() function
           // during this time, the car continues to travel before the actuator command got sent back to the simulator
-          double total_latency = t_sleep_time_ms/1000.0 + mpc.average_solve_time_;
-          cout << "mpc.average_solve_time_ " << mpc.average_solve_time_ << endl;
-          cout << "total latency " << total_latency << endl;
+          double total_latency = t_sleep_time_ms/1000.0 + mpc.solve_time_;
+
+          // debug
+          if (mpc.is_debug_active) {
+            cout << "mpc.average_solve_time_ " << mpc.solve_time_ << endl;
+            cout << "total latency " << total_latency << endl;
+          }
 
           double dv = acceleration * total_latency;
           double dx = (v + dv) * total_latency;
-          cout << "dv " << dv << endl;
+          // The cross track error is calculated by evaluating at polynomial at x, f(x)
+          // and subtracting y.
+          double cte = polyeval(coeffs, dx) - 0;
+          // Due to the sign starting at 0, the orientation error is -f'(x).
+          // derivative of coeffs[0] + coeffs[1] * x + coeffs[2] * x^2 -> coeffs[1] + 2 * coeffs[2] * x
+          double epsi = dx - atan(coeffs[1] + 2 * coeffs[2] * dx + 3 * coeffs[3] * dx * dx);
+
+          // debug
+          if (mpc.is_debug_active) {
+            cout << "psi " << psi << endl;
+            cout << "atan(coeffs[1] + 2 * coeffs[2] * px + 3 * coeffs[3] * px * px) " << epsi << endl;
+          }
 
           Eigen::VectorXd state(6);
           state << dx, 0, 0, (v + dv), cte, epsi;
 
+          // Calculate steeering angle and throttle using MPC
           auto actuators = mpc.Solve(state, coeffs);
+
+          // simulator's steering angle has the opposite sign of the actuator "delta"
           steer_value = -actuators[0];
           throttle_value = actuators[1];
-          // TODO: experiment, remove if not useful
           acceleration = actuators[1];
-          // debug
-          cout << "steering_value " << steer_value << endl;
-          cout << "throttle_value " << throttle_value << endl;
 
+          // debug
+          if (mpc.is_debug_active) {
+            cout << "steering_value " << steer_value << endl;
+            cout << "throttle_value " << throttle_value << endl;
+          }
+
+          // restrict the range of the control input to the simulator
           if (steer_value > 1) {
             steer_value = 1;
           }
           if (steer_value < -1) {
             steer_value = -1;
           }
-
           if (throttle_value > 1) {
             throttle_value = 1;
           }
           if (throttle_value < -1) {
             throttle_value = -1;
           }
+
+          // set the json object with control input to the simulator
           json msgJson;
           msgJson["steering_angle"] = steer_value;
           msgJson["throttle"] = throttle_value;
 
-          //Display the MPC predicted trajectory 
+          // Declare variables for displaying the MPC predicted trajectory
           vector<double> mpc_x_vals;
           vector<double> mpc_y_vals;
 
@@ -236,7 +250,9 @@ int main() {
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
 
           auto t_before_sleep = chrono::high_resolution_clock::now();
-          //std::cout << msg << std::endl;
+          if (mpc.is_debug_active) {
+            std::cout << msg << std::endl;
+          }
           // Latency
           // The purpose is to mimic real driving conditions where
           // the car does not actuate the commands instantly.

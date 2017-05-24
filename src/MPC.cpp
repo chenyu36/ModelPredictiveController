@@ -10,9 +10,9 @@
 namespace plt = matplotlibcpp;
 using CppAD::AD;
 
-// TODO: Set the timestep length and duration
-size_t N = 6;
-double dt = 0.05;
+// Set the timestep length and duration
+size_t N = 10;
+double dt = 0.04  ;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -27,8 +27,7 @@ double dt = 0.05;
 const double Lf = 2.67;
 
 // Both the reference cross track and orientation errors are 0.
-// The reference velocity is set to 40 mph.
-// TODO: Chris. Experiment with velocity.
+// The reference velocity is set to 64 mph.
 double ref_cte = 0;
 double ref_epsi = 0;
 double ref_v = 64;
@@ -57,7 +56,6 @@ class FG_eval {
   void operator()(ADvector& fg, const ADvector& vars) {
     // The cost is stored is the first element of `fg`.
     // Any additions to the cost should be added to `fg[0]`.
-    // TODO: implement MPC
     // The cost is stored is the first element of `fg`.
     // Any additions to the cost should be added to `fg[0]`.
     fg[0] = 0;
@@ -77,7 +75,7 @@ class FG_eval {
 
     // Minimize the value gap between sequential actuations.
     for (int i = 0; i < N - 2; i++) {
-      fg[0] += 400 * CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
+      fg[0] += 100000 * CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
       fg[0] += 20 * CppAD::pow(vars[a_start + i + 1] - vars[a_start + i], 2);
     }
     // NOTE: You'll probably go back and forth between this function and
@@ -152,6 +150,8 @@ class FG_eval {
 MPC::MPC() {
   mpc_x_vals_.resize(N);
   mpc_y_vals_.resize(N);
+  is_debug_active = false;
+  solve_time_ = 0;
 }
 MPC::~MPC() {}
 
@@ -162,7 +162,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   size_t i;
   typedef CPPAD_TESTVECTOR(double) Dvector;
 
-  // TODO: Set the number of model variables (includes both states and inputs).
+  // Set the number of model variables (includes both states and inputs).
   double x = state[0];
   double y = state[1];
   double psi = state[2];
@@ -174,7 +174,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   //
   // 4 * 10 + 2 * 9
   size_t n_vars = N * 6 + (N - 1) * 2;
-  // TODO: Set the number of constraints
+  // Set the number of constraints
   size_t n_constraints = N * 6;
 
   auto t_before_Solve = chrono::high_resolution_clock::now();
@@ -195,7 +195,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 
   Dvector vars_lowerbound(n_vars);
   Dvector vars_upperbound(n_vars);
-  // TODO: Set lower and upper limits for variables.
+  // Set lower and upper limits for variables.
   // Set all non-actuators upper and lowerlimits
   // to the max negative and positive values.
   for (int i = 0; i < delta_start; i++) {
@@ -214,7 +214,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   // TODO: Chris: Experiment this. Feel free to change this to something else.
   for (int i = a_start; i < n_vars; i++) {
     vars_lowerbound[i] = -1.0;
-    vars_upperbound[i] = 1.0;
+    vars_upperbound[i] = 0.8;
   }
   // Lower and upper limits for the constraints
   // Should be 0 besides initial state.
@@ -271,7 +271,9 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 
   // Cost
   auto cost = solution.obj_value;
-  std::cout << "Cost " << cost << std::endl;
+  if (is_debug_active) {
+    std::cout << "Cost " << cost << std::endl;
+  }
 
   // Store the mpc predicted x, y values to be passed back to the simulator
   // for visualization as green lines
@@ -282,7 +284,10 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 
   auto t_Solving = chrono::high_resolution_clock::now() - t_before_Solve;
   long long t_Solving_ms = chrono::duration_cast<chrono::milliseconds>(t_Solving).count();
-  cout << "t_Solving_ms " << t_Solving_ms << " ms" << endl;
+  solve_time_ = (double) t_Solving_ms /1000.0;
+  if (is_debug_active) {
+    cout << "t_Solving_ms " << t_Solving_ms << " ms" << endl;
+  }
 
   // average the solving time from the last 10 executions
   if (solve_time.size() < n_samples_for_average) {

@@ -18,6 +18,8 @@ class MPC {
   vector<double> mpc_x_vals_;
   vector<double> mpc_y_vals_;
   double average_solve_time_;
+  double solve_time_;
+  bool is_debug_active;
 };
 
 #endif /* MPC_H */
