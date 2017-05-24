@@ -85,6 +85,7 @@ int main() {
   MPC mpc;
   static double acceleration = 0;
   static long long t_sleep_time_ms = 100;
+  static double delta = 0;
 
   h.onMessage([&mpc](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
@@ -174,7 +175,8 @@ int main() {
           // desired_psi = arctan(f'(x)) where f(x) = coeffs[0] + coeffs[1] * x + coeffs[2] * x^2 + coeffs[3] * x^3
           // f'(x) = coeffs[1] + 2 * coeffs[2] * dx + 3 * coeffs[3] * dx * dx
           // again, in car coordinate, (x, y) = (0, 0), but we account for dx caused by latency.
-          double epsi = 0 - atan(coeffs[1] + 2 * coeffs[2] * dx + 3 * coeffs[3] * dx * dx);
+          double d_psi = (v+dv)/2.67*delta*total_latency;
+          double epsi = d_psi - atan(coeffs[1] + 2 * coeffs[2] * dx + 3 * coeffs[3] * dx * dx);
 
           // debug
           if (mpc.is_debug_active) {
@@ -193,6 +195,7 @@ int main() {
           steer_value = -actuators[0];
           throttle_value = actuators[1];
           acceleration = actuators[1];
+          delta = actuators[0];
 
           // debug
           if (mpc.is_debug_active) {
