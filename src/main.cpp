@@ -14,16 +14,6 @@ using json = nlohmann::json;
 
 // For converting back and forth between radians and degrees.
 constexpr double pi() { return M_PI; }
-double deg2rad(double x) { return x * pi() / 180; }
-double rad2deg(double x) { return x * 180 / pi(); }
-double normalizeAngle(double psi) {
-  const double Max = M_PI;
-  const double Min = -M_PI;
-
-  return psi < Min
-         ? Max + std::fmod(psi - Min, Max - Min)
-         : std::fmod(psi - Min, Max - Min) + Min;
-}
 
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,

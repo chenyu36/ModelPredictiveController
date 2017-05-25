@@ -11,8 +11,8 @@ namespace plt = matplotlibcpp;
 using CppAD::AD;
 
 // Set the timestep length and duration
-size_t N = 10;
-double dt = 0.04  ;
+size_t N = 7;
+double dt = 0.08  ;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -75,12 +75,11 @@ class FG_eval {
 
     // Minimize the value gap between sequential actuations.
     for (int i = 0; i < N - 2; i++) {
-      fg[0] += 100000 * CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
+      fg[0] += 50000 * CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
       fg[0] += 20 * CppAD::pow(vars[a_start + i + 1] - vars[a_start + i], 2);
     }
-    // NOTE: You'll probably go back and forth between this function and
-    // the Solver function below.
-    //
+
+
     // Setup Constraints
     //
     // NOTE: In this section you'll setup the model constraints.
