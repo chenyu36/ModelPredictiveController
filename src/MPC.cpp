@@ -5,7 +5,7 @@
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
 #include <chrono>
-#include "matplotlibcpp.h" // TODO: When done, remove this and the target_link_libraries about python in CMakeLists.txt
+#include "matplotlibcpp.h"
 
 namespace plt = matplotlibcpp;
 using CppAD::AD;
@@ -204,13 +204,13 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 
   // The upper and lower limits of delta are set to -25 and 25
   // degrees (values in radians).
-  // TODO: Chris: Experiment this. Feel free to change this to something else.
+
   for (int i = delta_start; i < a_start; i++) {
     vars_lowerbound[i] = -0.436332;
     vars_upperbound[i] = 0.436332;
   }
   // Acceleration/decceleration upper and lower limits.
-  // TODO: Chris: Experiment this. Feel free to change this to something else.
+
   for (int i = a_start; i < n_vars; i++) {
     vars_lowerbound[i] = -1.0;
     vars_upperbound[i] = 0.8;
@@ -254,7 +254,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   options += "Sparse  true        forward\n";
   options += "Sparse  true        reverse\n";
   // NOTE: Currently the solver has a maximum time limit of 0.5 seconds.
-  // TODO: Chris. Experiment this. Change this as you see fit.
+
   options += "Numeric max_cpu_time          0.5\n";
 
   // place to return solution
