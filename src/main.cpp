@@ -140,7 +140,7 @@ int main() {
 
 
           if ((ptsx.size() > 0) && (ptsy.size() > 0) && (ptsx.size() == ptsy.size())) {
-            // fit the polynomial with 2nd order curve
+            // fit the polynomial with 3rd order curve
             coeffs = polyfit(ptsx_e, ptsy_e, 3);
           }
 
