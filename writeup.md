@@ -1,6 +1,6 @@
 
 
-##P5 Model Predictive Controller (MPC) Project
+## P5 Model Predictive Controller (MPC) Project
 
 The goals of this project are the following:
 
@@ -11,9 +11,9 @@ The goals of this project are the following:
 * Optionally, visualize the waypoints and the predicted car trajectory in the simulator.
 
 ---
-###The Model
+### The Model
 
-####1. the State
+#### 1. the State
 
 The state consists of 6 variables, px, py, psi, v, cte and epsi.
 
@@ -36,13 +36,13 @@ For the time being, we simplify the state to the following.
 
 Later in the section "Model Predictive Control with Latency", I talk about how I make adjustment to the state variables by considering the effect of the latency.
 
-####2. the Actuators
+#### 2. the Actuators
 
 There are 2 actuators in the MPC model, the steering angle and throttle. Using the coefficients of the polynomial, the state as the input applied with constraints,
  we can solve for the optimal actuator values. (see `auto actuators = mpc.Solve(state, coeffs)` in `main.cpp`) The actuator values are sent back to the simulator via a json object.
 The steering angle has the constraint of +/- 25 degrees; the throttle can be set within the range of +/- 1, but I chose a slightly more conservative upper bound at 0.8.
 
-####3. the Update Equations
+#### 3. the Update Equations
 We applied the kinematic model in the MPC. The kinematic equations are implemented in the class function `operator()` of the class `FG_eval`.
 
 Here are the equations for the model.
@@ -97,11 +97,13 @@ and the data types of the parameters in `polyfit()` function are in `Eigen::Vect
 In reality, the car does not actuate the commands (steering angle and throttle) instantly. Before the new commands take effect, the car continues to travel.
 To provide better prediction, we need to consider the effect of the latency.
 In this project, we consider 2 types of latency.
+
 * latency 1: 100 ms which is defined for the project
 * latency 2: the latency created by the Solver function to find a solution
 
 By using `chrono::high_resolution_clock`, I measured the actual latency 1 of the thread in sleep (see `t_sleep_time_ms` in `main.cpp`). Similarly, latency 2 (see `t_Solving_ms` in `MPC.cpp`) can be measured by instrumenting `MPC::Solve` in `MPC.cpp`.
 Combining latency 1 and 2 (=dt) which is a small time difference, we can apply the kinematic model to predict the change in position px, psi, v and fine tune cte and epsi.
+
 * difference in v: dv = acceleration * dt where acceleration is the last throttle input to the simulator
 * difference in px: dx = (v + dv) * dt
 * difference psi: d_psi = (v+dv)/Lf * delta * dt, where delta is the last steering input to the simulator, Lf is defined as 2.67
