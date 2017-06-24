@@ -115,11 +115,10 @@ int main() {
           for (int i = 0; i < ptsx.size(); i++) {
             double relativeX = ptsx[i] - px;
             double relativeY = ptsy[i] - py;
-            double psi_unity = psi - M_PI / 2;
-            double rotatedX = cos(-psi_unity) * relativeX - sin(-psi_unity) * relativeY;
-            double rotatedY = cos(-psi_unity) * relativeY + sin(-psi_unity) * relativeX;
-            ptsx[i] = rotatedY;
-            ptsy[i] = -rotatedX;
+            double rotatedX = cos(-psi) * relativeX - sin(-psi) * relativeY;
+            double rotatedY = cos(-psi) * relativeY + sin(-psi) * relativeX;
+            ptsx[i] = rotatedX;
+            ptsy[i] = rotatedY;
           }
 
           // Before fitting the polynomial, map the vector type to Eigen::VectorXd
