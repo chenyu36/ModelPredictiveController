@@ -14,6 +14,8 @@ using json = nlohmann::json;
 
 // For converting back and forth between radians and degrees.
 constexpr double pi() { return M_PI; }
+double deg2rad(double x) { return x * pi() / 180; }
+double rad2deg(double x) { return x * 180 / pi(); }
 
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
@@ -153,9 +155,9 @@ int main() {
             cout << "mpc.average_solve_time_ " << mpc.solve_time_ << endl;
             cout << "total latency " << total_latency << endl;
           }
-
+          const double convert_to_metric = 1600.0/3600; // convert from mph to m/s
           double dv = acceleration * total_latency;
-          double dx = (v + dv) * total_latency;
+          double dx = (v + dv) * convert_to_metric * total_latency;
           // The cross track error is calculated by evaluating at polynomial at x, f(x)
           // and subtracting y.
           // in car coordinate, (x, y) = (0, 0), but we account for dx caused by latency.
@@ -165,7 +167,7 @@ int main() {
           // desired_psi = arctan(f'(x)) where f(x) = coeffs[0] + coeffs[1] * x + coeffs[2] * x^2 + coeffs[3] * x^3
           // f'(x) = coeffs[1] + 2 * coeffs[2] * dx + 3 * coeffs[3] * dx * dx
           // again, in car coordinate, (x, y) = (0, 0), but we account for dx caused by latency.
-          double d_psi = (v+dv)/2.67*delta*total_latency;
+          double d_psi = (v+dv) * convert_to_metric * delta * total_latency;
           double epsi = d_psi - atan(coeffs[1] + 2 * coeffs[2] * dx + 3 * coeffs[3] * dx * dx);
 
           // debug
@@ -194,12 +196,12 @@ int main() {
           }
 
           // restrict the range of the control input to the simulator
-          if (steer_value > 1) {
-            steer_value = 1;
-          }
-          if (steer_value < -1) {
-            steer_value = -1;
-          }
+//          if (steer_value > 1) {
+//            steer_value = 1;
+//          }
+//          if (steer_value < -1) {
+//            steer_value = -1;
+//          }
           if (throttle_value > 1) {
             throttle_value = 1;
           }
