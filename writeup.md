@@ -111,4 +111,4 @@ Combining latency 1 and 2 (=dt) which is a small time difference, we can apply t
 * epsi: d_psi - atan(coeffs[1] + 2 * coeffs[2] * dx + 3 * coeffs[3] * dx * dx). d_psi replaces the (psi=0) , and dx replaces the (px=0), both mentioned in the above State.
 
 ### Video: MPC in action
-[Video: MPC in action](https://www.dropbox.com/s/91x4x1wghjag6fm/MPC%20in%20action%2062%20mph.mov?dl=0)
+[Video: MPC in action](https://www.dropbox.com/s/411z2u7sub76lt3/MPC_in_action_peak_89mph.mov?dl=0)

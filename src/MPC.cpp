@@ -62,7 +62,7 @@ class FG_eval {
     // Tuning the first 2 coefficients helps maintain the cte and epsi with higher priority over vehicle speed.
     // Effectively this causes vehicle to brake at tough turns.
     for (int i = 0; i < N; i++) {
-      fg[0] += 950 * CppAD::pow(vars[cte_start + i] - ref_cte, 2);
+      fg[0] += 1100 * CppAD::pow(vars[cte_start + i] - ref_cte, 2);
       fg[0] += 400 * CppAD::pow(vars[epsi_start + i] - ref_epsi, 2);
       fg[0] += CppAD::pow(vars[v_start + i] - ref_v, 2);
     }
